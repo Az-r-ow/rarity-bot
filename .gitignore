@@ -1,0 +1,9 @@
+.DS_Store
+package-lock.json
+phantom_wallet.txt
+.env
+/src/data/csv/*
+/src/data/hash_lists/*
+/src/data/traits/*
+node_modules
+test.js

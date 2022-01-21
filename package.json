@@ -1,0 +1,24 @@
+{
+  "name": "rarity-bot",
+  "version": "1.0.0",
+  "description": "A bot that will rank NFT collections",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "mocha"
+  },
+  "author": "Az-r-ow",
+  "license": "ISC",
+  "dependencies": {
+    "@metaplex/js": "^4.11.5",
+    "@solana/web3.js": "^1.31.0",
+    "axios": "^0.24.0",
+    "cli-progress": "^3.10.0",
+    "csv-stringify": "^6.0.5",
+    "dotenv": "^14.2.0",
+    "mongoose": "^6.1.7"
+  },
+  "devDependencies": {
+    "mocha": "^9.1.4"
+  }
+}
