@@ -19,14 +19,10 @@ async function getMetadataData_sol(nft_address){
   const NFT_MINT_ADDRESS = new PublicKey(nft_address);
   let req_metadata;
 
-  try{
-    const pda = await Metadata.getPDA(NFT_MINT_ADDRESS);
-    const metadata = await Metadata.load(new Connection('mainnet-beta'), pda);
-    req_metadata = await axios.get(metadata.data.data.uri);
-  }catch (e){
-    console.log(e);
-    process.exit(1);
-  }
+  const pda = await Metadata.getPDA(NFT_MINT_ADDRESS);
+  const metadata = await Metadata.load(new Connection('mainnet-beta'), pda);
+  req_metadata = await axios.get(metadata.data.data.uri);
+
   return req_metadata.data;
 };
 
@@ -34,10 +30,11 @@ async function getMetadataData_sol(nft_address){
 /**
  * getTraitsRecurrences_sol - get the collection's traits and store them in a json file
  *
- * @param  {String} file_path the path to the hash_list file
+ * @param  {String} hs_file_path the path to the hash_list file
+ * @param  {String} path_to_data_folder  the path to folder that'll store the traits recurrnces
  * @return {String}           The absolute path to the traits file
  */
-async function getTraitsRecurrences_sol(file_path){
+async function getTraitsRecurrences_sol(hs_file_path, path_to_data_folder){
   /**
    * The object that will later on be tranformed
    * into a .json file and stored.
@@ -54,14 +51,14 @@ async function getTraitsRecurrences_sol(file_path){
     format: 'Traits Recurrences [{bar}] {percentage}% | ETA: {eta}s | {value}/{total}'
   }, cliProgress.Presets.shades_classic);
 
-  let rawHashList = await fs.readFileSync(file_path);
+  let rawHashList = await fs.readFileSync(hs_file_path);
   let hash_list = JSON.parse(rawHashList);
 
   // Starting the progress bar
   bar.start(hash_list.length, 0);
 
   for(let i = 0; i < hash_list.length; i++){
-    await sleep(500).then(async () =>{
+    await sleep(100).then(async () =>{
       // Retreiving the attributes for each nft
       const {attributes} = await getMetadataData_sol(hash_list[i]);
 
@@ -85,19 +82,20 @@ async function getTraitsRecurrences_sol(file_path){
       })
     });
     bar.increment();
-  }
+  };
 
-  const pathToTraits = path.resolve('../data/traits');
+  let pathToTraits;
 
   try{
-    let output = await JSON.stringify(traits_recurrences);
-    await fs.writeFileSync(`${pathToTraits}/${path.basename(file_path)}`, output);
-    console.log(`\n${path.basename(file_path)} created !`);
+    pathToTraits = path.resolve(path_to_data_folder);
+    const output = await JSON.stringify(traits_recurrences);
+    await fs.writeFileSync(`${pathToTraits}/${path.basename(hs_file_path)}`, output);
+    console.log(`\n${path.basename(hs_file_path)} created !`);
   }catch (e){
     console.log(e);
     process.exit(1);
   }
-  return `${pathToTraits}/${path.basename(file_path)}`
+  return `${pathToTraits}/${path.basename(hs_file_path)}`
 };
 
 async function calculateScores_sol(traits_file_path, hs_file_path) {
@@ -112,6 +110,7 @@ async function calculateScores_sol(traits_file_path, hs_file_path) {
    * This will be the array that will store objects
    * Each object representing an nft in it we will have :
    * nft_name
+   * hash
    * mint_address
    * score
    * image_url
@@ -151,8 +150,71 @@ async function calculateScores_sol(traits_file_path, hs_file_path) {
 
 };
 
+
+/**
+ * moonRarityAlgo - a calculation algorithm created by MoonRarity
+ *
+ * @param  {String} traits_file_path Path to the trait's file (json)
+ * @param  {String} hs_file_path     Path to the hash list (json)
+ * @return {Array}                  An array of scored NFT objects
+ */
+async function moonRarityAlgo(traits_file_path, hs_file_path){
+  let trait_recurrences = JSON.parse(await fs.readFileSync(traits_file_path));
+  const hash_list = JSON.parse(await fs.readFileSync(hs_file_path));
+
+  const bar = new cliProgress.SingleBar({
+    format: 'Calculating Scores Moonrarity [{bar}] {precentage}% | ETA: {eta}s | {value}/{total}'
+  }, cliProgress.Presets.shades_classic);
+
+  // There are two attributes in here that shouldn't be confused
+  // The first attribtes that is being destructures is the attributes of the nft itself
+  // The second attributes (in scored_nft) is the totality of the attributes types in the collection
+  let scored_list = [];
+  bar.start(hash_list.length, 0);
+  for (let i = 0; i < hash_list.length; i++){
+    await sleep(100).then(async () => {
+      let {
+        name,
+        image,
+        attributes,
+        collection
+      } = await getMetadataData_sol(hash_list[i]);
+
+      const scored_nft = {
+        name,
+        hash: hash_list[i],
+        image,
+        collection_name: collection.name,
+        rarity: 0,
+        attributes: Object.keys(trait_recurrences).map(key => {
+          // Going over the traits
+          // Checking the overall number of people who doesn't have
+          // The trait_type and then calculating it's rarity percentage
+          return {trait_type: key, trait_value: null, rarity: ((hash_list.length - Object.values(trait_recurrences[key]).reduce((a, b) => a + b)) / hash_list.length)}
+        })
+      };
+
+      // Getting the rarity percentage of the traits that the nft has
+      // Leaving the rest as null and having a rarity of
+      await attributes.forEach(attribute => {
+        const rarity_percentage = (trait_recurrences[attribute.trait_type][attribute.value]/hash_list.length);
+        const indexOfTrait = scored_nft.attributes.findIndex(el => el.trait_type === attribute.trait_type);
+        scored_nft.attributes[indexOfTrait].trait_value = attribute.value;
+        scored_nft.attributes[indexOfTrait].rarity = rarity_percentage;
+      });
+
+      scored_nft.rarity = scored_nft.attributes.map(a => a.rarity).reduce((a, b) => a * b);
+
+      await scored_list.push(scored_nft);
+    });
+    bar.increment();
+  }
+  return scored_list;
+}
+
 export {
   getMetadataData_sol,
   calculateScores_sol,
-  getTraitsRecurrences_sol
+  getTraitsRecurrences_sol,
+  moonRarityAlgo
 }

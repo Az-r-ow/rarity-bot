@@ -12,7 +12,8 @@ import 'dotenv/config';
 import {
   getMetadataData_sol,
   calculateScores_sol,
-  getTraitsRecurrences_sol
+  getTraitsRecurrences_sol,
+  moonRarityAlgo
 } from '../utils/sol.mjs';
 
 
@@ -24,7 +25,8 @@ import {
  */
 export function checkCliArgs(argv){
 
-  if(argv.length < 4 || !(argv[2] === "-s" || argv[2] === "-e"))throw new Error('Wrong format !\nFormat : node <filename> <flag> <hash_file_path>');
+  if(argv.length < 4 || !(argv[2] === "-s" || argv[2] === "-e"))throw new Error('Wrong format !\nFormat : node <filename> <flag> <path_to_hash_file>');
+
   // Check if the file is there
   fs.access(argv[3], fs.constants.F_OK, (err) => {
     if(err)throw err
@@ -45,10 +47,10 @@ async function main(){
     // Store the traits and their recurrences
     const traits_file_path = flag === "-s" ? await getTraitsRecurrences_sol(hs_file_path)
                                            : await getTraitsRecurrences_eth();
-    const calculatedScores = flag === "-s" ? await calculateScores_sol(traits_file_path, hs_file_path)
+    const calculatedScores = flag === "-s" ? await moonRarityAlgo(traits_file_path, hs_file_path)
                                            : await calculateScores_eth();
     // Sort in desc them and then save them in a db and a csv file
-    const sortedScores = await calculatedScores.sort((firstEl, secondEl) => secondEl.score - firstEl.score);
+    const sortedScores = await calculatedScores.sort((firstEl, secondEl) => firstEl.rarity - secondEl.rarity);
     const csvString = await toCsvString(sortedScores);
     await fs.writeFileSync(`../data/csv/${path.basename(hs_file_path, '.json')}.csv`, csvString);
     const bar = new cliProgress.SingleBar({
@@ -62,7 +64,8 @@ async function main(){
         image: nft.image,
         collection_name: nft.collection_name,
         rank: (index + 1).toString(),
-        score: (nft.score).toString(),
+        rarity: (Math.ceil(nft.rarity)).toString(),
+        attributes: nft.attributes,
         pieces: (sortedScores.length).toString(),
         tier: setTier((index + 1), sortedScores.length)
       }, (err) => {

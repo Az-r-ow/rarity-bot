@@ -31,4 +31,32 @@ class DisplayRarity extends MessageEmbed {
   }
 }
 
-export default DisplayRarity;
+class DisplayAttributes extends MessageEmbed {
+  constructor(name, attributes, tier){
+    super();
+    this.setTitle(name)
+    .setDescription(
+      attributes.map(attribute => `\*\*${attribute.trait_type}:\*\* ${attribute.trait_value}  \`${(attribute.rarity * 100).toFixed(2)}%\``).join('\n')
+    )
+    .setColor(this.getColor(tier))
+  };
+
+  getColor(tier){
+    switch (tier) {
+      case "Mythic":
+        return "DARK_BUT_NOT_BLACK";
+      case "Legendary":
+        return "GOLD";
+      case "Epic":
+        return "RED";
+      case "Rare":
+        return "BLUE"
+      case "Uncommon":
+        return "AQUA";
+      default:
+        return "WHITE";
+    }
+  }
+}
+
+export {DisplayRarity, DisplayAttributes};

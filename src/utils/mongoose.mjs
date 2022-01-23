@@ -12,7 +12,8 @@ const nftSchema = new Schema({
   collection_name: String,
   pieces: String,
   rank: String,
-  score: String,
+  rarity: String,
+  attributes: Array,
   tier: String
 })
 
