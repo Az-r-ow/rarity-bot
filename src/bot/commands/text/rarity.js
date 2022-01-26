@@ -2,7 +2,7 @@ import {
   DisplayAttributes,
   DisplayRarity
 } from '../../tmp/RarityMessage.js';
-import Nft from '../../../utils/mongoose.mjs';
+import { Nft, Collection }from '../../../utils/mongoose.mjs';
 import {prefix} from '../../utils/consts.mjs';
 import {MissingArgsError} from '../../utils/classes.mjs';
 import {
@@ -12,21 +12,42 @@ import {
 
 export const command = {
   name: 'rarity',
-  usage: `${prefix} rarity <collection_id>\n\n${prefix} rarity token <token_address>`,
+  usage: `${prefix} rarity collection <collection_id>\n\n${prefix} rarity token <token_address>\n\n${prefix} rarity rank <collection_name> <rank>`,
   description: 'Check the rarity of a given NFT',
   async execute(interaction, args, client){
-    if(!args.length)throw new MissingArgsError(this.usage);
+    if(args.length <= 1)throw new MissingArgsError(this.usage);
 
-    let data = args[0].toLowerCase() === "token" ? await Nft.findOne({hash: args[1]}).exec()
-                                                 : await Nft.findOne({name: args.join(" ").toLowerCase()}).exec();
+    let nftData = args[0].toLowerCase() === "token" ? await Nft.findOne({hash: args[1]}).exec()
+                                                    : args[0].toLowerCase() === "rank" && args.join(" ").match(/\s\d+/g).length
+                                                    ? await Nft.findOne({rank: args.filter(arg => !isNaN(arg))[0], collection_name: args.slice(1).filter(arg => isNaN(arg)).join(" ").toUpperCase()}).exec()
+                                                     : await Nft.findOne({collection_name: args.slice(1).join(" ").toUpperCase()}).exec()
 
-    if (!data)throw {
-      name: "Nothing was found !",
-      message: "This collection might not be listed."
-    };
+
+    if (!nftData && (args[0].toLowerCase() === "collection" || args[0].toLowerCase() === "rank")){
+      // Finding similar collection names
+      const regex =  new RegExp(`${args.slice(1).filter(arg => isNaN(arg)).join(" ")}`);
+      console.log(args.slice(1).filter(arg => isNaN(arg)).join(" "))
+      const similar = await Collection.find({name: {$regex: regex, $options: 'i'}}).exec();
+      throw {
+        name: "Nothing was found !",
+        message: `You might be searching for : \`\`\`${similar.map(i => i.name).join('\n')}\`\`\``
+      }
+    }else if (!nftData){
+      throw {
+        name: "Nothing was found !",
+        message: "This collection might not be listed."
+      }
+    }
+
+    const collectionData = await Collection.findOne({name: nftData.collection_name}).exec();
+    // Incrementing the view count of the collection
+    // collectionData = collectionData.rarityCheck + 1;
+    // await collectionData.save();
+
+    const footer = `${collectionData.blockchain} • ${collectionData.algo}`;
 
     const displayRarity = {
-      embeds: [new DisplayRarity(data.name,data.rank,data.pieces,data.image,data.tier)],
+      embeds: [new DisplayRarity(nftData.name,nftData.rank,collectionData.numPieces.toString(),nftData.image,nftData.tier, footer)],
       components: [new MessageActionRow()
       .addComponents(
         new MessageButton()
@@ -37,7 +58,7 @@ export const command = {
     };
 
     const displayAttributes = {
-      embeds: [new DisplayAttributes(data.name, data.attributes, data.tier)],
+      embeds: [new DisplayAttributes(nftData.name, nftData.attributes, nftData.tier, footer)],
       components: [new MessageActionRow()
       .addComponents(
         new MessageButton()

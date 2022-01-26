@@ -1,7 +1,7 @@
 import {MessageEmbed} from 'discord.js';
 
 class DisplayRarity extends MessageEmbed {
-  constructor(name, rank, pieces, image_url, tier){
+  constructor(name, rank, pieces, image_url, tier, footer){
     super();
     this.setTitle(name)
     .addFields(
@@ -11,6 +11,9 @@ class DisplayRarity extends MessageEmbed {
     )
     .setImage(image_url)
     .setColor(this.getColor(tier))
+    .setFooter({
+      text: footer
+    })
   };
 
   getColor(tier){
@@ -32,13 +35,16 @@ class DisplayRarity extends MessageEmbed {
 }
 
 class DisplayAttributes extends MessageEmbed {
-  constructor(name, attributes, tier){
+  constructor(name, attributes, tier, footer){
     super();
     this.setTitle(name)
     .setDescription(
       attributes.map(attribute => `\*\*${attribute.trait_type}:\*\* ${attribute.trait_value}  \`${(attribute.rarity * 100).toFixed(2)}%\``).join('\n')
     )
     .setColor(this.getColor(tier))
+    .setFooter({
+      text: footer
+    })
   };
 
   getColor(tier){

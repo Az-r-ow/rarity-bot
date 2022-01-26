@@ -2,7 +2,7 @@ import {
   getMetadataData_sol,
   calculateScores_sol,
   getTraitsRecurrences_sol,
-  moonRarityAlgo
+  masterAlgo
 } from '../src/utils/sol.mjs';
 import {assert} from 'chai';
 import fs from 'fs';
@@ -25,9 +25,9 @@ describe('getTraitsRecurrences_sol()', function(){
   }).timeout(10000);
 })
 
-describe('moonRarityAlgo()', function(){
+describe('masterAlgo()', function(){
   it('Returns array of scored nft', async () => {
-    await moonRarityAlgo('/Users/antoineazar/rarity-bot/test/test_cases/output/hash_list.json', '/Users/antoineazar/rarity-bot/test/test_cases/hash_list.json').then(res => {
+    await masterAlgo('/Users/antoineazar/rarity-bot/test/test_cases/output/hash_list.json', '/Users/antoineazar/rarity-bot/test/test_cases/hash_list.json').then(res => {
       assert.isArray(res, 'An array was returned.');
       assert.lengthOf(res, 9, 'It has the lenght of the hash_list')
     });

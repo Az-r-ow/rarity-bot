@@ -152,18 +152,18 @@ async function calculateScores_sol(traits_file_path, hs_file_path) {
 
 
 /**
- * moonRarityAlgo - a calculation algorithm created by MoonRarity
+ * masterAlgo - Our rarity algorithm 
  *
  * @param  {String} traits_file_path Path to the trait's file (json)
  * @param  {String} hs_file_path     Path to the hash list (json)
  * @return {Array}                  An array of scored NFT objects
  */
-async function moonRarityAlgo(traits_file_path, hs_file_path){
+async function masterAlgo(traits_file_path, hs_file_path){
   let trait_recurrences = JSON.parse(await fs.readFileSync(traits_file_path));
   const hash_list = JSON.parse(await fs.readFileSync(hs_file_path));
 
   const bar = new cliProgress.SingleBar({
-    format: 'Calculating Scores Moonrarity [{bar}] {precentage}% | ETA: {eta}s | {value}/{total}'
+    format: 'Calculating Scores [{bar}] {percentage}% | ETA: {eta}s | {value}/{total}'
   }, cliProgress.Presets.shades_classic);
 
   // There are two attributes in here that shouldn't be confused
@@ -216,5 +216,5 @@ export {
   getMetadataData_sol,
   calculateScores_sol,
   getTraitsRecurrences_sol,
-  moonRarityAlgo
+  masterAlgo
 }

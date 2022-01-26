@@ -1,6 +1,7 @@
 import fs from "fs";
 import {Client, Intents, Collection} from "discord.js";
 import ErrorMessage from './tmp/ErrorMessage.js';
+import {MissingArgsError} from './utils/classes.mjs';
 import 'dotenv/config';
 import {prefix} from './utils/consts.mjs';
 
@@ -67,7 +68,7 @@ client.on('messageCreate', async message => {
     await command.execute(message, args.slice(1), client);
 
   }catch (e){
-    if (e instanceof Error){
+    if (e instanceof Error && !(e instanceof MissingArgsError)){
       console.log(e);
     }
     message.reply({embeds: [new ErrorMessage(e.name, e.message)]});
@@ -88,12 +89,16 @@ client.on('interactionCreate', async interaction => {
   try{
     await command.execute(interaction, args, client);
   }catch(e){
-    if (e instanceof Error){
+    if (e instanceof Error && !(e instanceof MissingArgsError)){
       console.log(e);
     }
     interaction.reply({embeds: [new ErrorMessage(e.name, e.message)]});
   }
 })
 
-
-client.login(process.env.TOKEN);
+if(process.argv[2] && process.argv[2] === "beta"){
+  client.login(process.env.BETA_TOKEN);
+  console.log("Beta is running !")
+}else{
+  client.login(process.env.TOKEN);
+}
