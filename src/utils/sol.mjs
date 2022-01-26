@@ -163,7 +163,7 @@ async function moonRarityAlgo(traits_file_path, hs_file_path){
   const hash_list = JSON.parse(await fs.readFileSync(hs_file_path));
 
   const bar = new cliProgress.SingleBar({
-    format: 'Calculating Scores Moonrarity [{bar}] {precentage}% | ETA: {eta}s | {value}/{total}'
+    format: 'Calculating Scores [{bar}] {percentage}% | ETA: {eta}s | {value}/{total}'
   }, cliProgress.Presets.shades_classic);
 
   // There are two attributes in here that shouldn't be confused

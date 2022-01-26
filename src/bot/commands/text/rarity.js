@@ -2,7 +2,7 @@ import {
   DisplayAttributes,
   DisplayRarity
 } from '../../tmp/RarityMessage.js';
-import Nft from '../../../utils/mongoose.mjs';
+import { Nft, Collection }from '../../../utils/mongoose.mjs';
 import {prefix} from '../../utils/consts.mjs';
 import {MissingArgsError} from '../../utils/classes.mjs';
 import {
@@ -17,16 +17,20 @@ export const command = {
   async execute(interaction, args, client){
     if(!args.length)throw new MissingArgsError(this.usage);
 
-    let data = args[0].toLowerCase() === "token" ? await Nft.findOne({hash: args[1]}).exec()
-                                                 : await Nft.findOne({name: args.join(" ").toLowerCase()}).exec();
-
-    if (!data)throw {
+    let nftData = args[0].toLowerCase() === "token" ? await Nft.findOne({hash: args[1]}).exec()
+                                                     : await Nft.findOne({
+                                                        collection_name: args.filter(el => !el.match(/\d+/g)).join(' ').toUpperCase(),
+                                                        collection_number: args.filter(el => el.match(/\d+/g))[0].match(/\d+/g)[0]
+                                                      }).exec();
+    if (!nftData)throw {
       name: "Nothing was found !",
       message: "This collection might not be listed."
     };
 
+    let collectionData = await Collection.findOne({name: nftData.collection_name}).exec();
+
     const displayRarity = {
-      embeds: [new DisplayRarity(data.name,data.rank,data.pieces,data.image,data.tier)],
+      embeds: [new DisplayRarity(nftData.name,nftData.rank,collectionData.numPieces.toString(),nftData.image,nftData.tier)],
       components: [new MessageActionRow()
       .addComponents(
         new MessageButton()
@@ -37,7 +41,7 @@ export const command = {
     };
 
     const displayAttributes = {
-      embeds: [new DisplayAttributes(data.name, data.attributes, data.tier)],
+      embeds: [new DisplayAttributes(nftData.name, nftData.attributes, nftData.tier)],
       components: [new MessageActionRow()
       .addComponents(
         new MessageButton()
