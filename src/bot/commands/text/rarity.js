@@ -46,6 +46,8 @@ export const command = {
 
     const footer = `${collectionData.blockchain} • ${collectionData.algo}`;
 
+    let collectionData = await Collection.findOne({name: nftData.collection_name}).exec();
+
     const displayRarity = {
       embeds: [new DisplayRarity(nftData.name,nftData.rank,collectionData.numPieces.toString(),nftData.image,nftData.tier, footer)],
       components: [new MessageActionRow()

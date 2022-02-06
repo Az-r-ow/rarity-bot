@@ -16,6 +16,13 @@ import {
   uploadCollectionToDb
 } from '../utils/helpers.mjs';
 import {
+  sleep,
+  promptVerification,
+  sendDiscordMessage,
+  uploadRankedNftToDb,
+  uploadCollectionToDb
+} from '../utils/helpers.mjs';
+import {
   getMetadataData_sol,
   calculateScores_sol,
   getTraitsRecurrences_sol,
@@ -72,6 +79,7 @@ async function main(){
      * After everything has been processed and done
      * The person listing the collection should check the csv file generated
      * To check validity of the rankings and the scores
+<<<<<<< HEAD
      *
      * Then he will be asked if the collection should be added to the db
      * And then another time if an announcement should be sent on the server
@@ -92,10 +100,32 @@ async function main(){
      const shouldList = await promptVerification('Did you check the generated file and are you sure you want to list it ? (y/n)');
 
      if(shouldList){
+=======
+     * He will then be prompted in the command line to verify
+     * After that person verifies, the discord bot will send a message
+     * in the new collections channel saying announcing the addition of the new channel.
+     */
+
+     // TODO: prompt the user for verify input
+     let shouldList = await promptVerification('Did you check the generated file and are you sure you want to list it ? (y/n)');
+
+     if(shouldList){
+
+       // We get a random nft to extract the data from
+       let rndNft = sortedScores[Math.floor(Math.random() * sortedScores.length)]
+
+       // Upload them to the db
+       await uploadRankedNftToDb(sortedScores);
+
+       // Upload the collection
+       await uploadCollectionToDb(rndNft, sortedScores.length);
+
+>>>>>>> 619087bedaa7d87333eb7cd9aa36281158a56be5
 
        // Send an embed message on discord
        const message = {
          embeds: [{
+<<<<<<< HEAD
            title: `New collection added : ${collection.name}`,
            description: `Welcome to \*\*${collection.name}\*\*, you can now check their rankings with :\n\`${command.usage}\`\n\n⚠️ Please remember that rarity is calculated from metatada, wrong metadata may lead to a wrong ranking. We will be working our hardest to monitor such mistakes and fix them ASAP.`,
            footer: {
@@ -107,6 +137,14 @@ async function main(){
        };
 
        // The id passed as an arg is the id of the "new-collection" channel in the main server
+=======
+           title: `New collection added : ${rndNft.collection_name}`,
+           description: `Welcome to \*\*${rndNft.collection_name}\*\*, you can now check their rankings with :\n\`!r rarity ${rndNft.collection_name} <number>\`\nor\n\`!r rarity token <token_address>\`\n\n⚠️ Please remember that rarity is calculated from metatada, wrong metadata may lead to a wrong ranking. We will be working our hardest to monitor such mistakes and fix them ASAP.`,
+           image: {url: rndNft.image},
+           color: 'RANDOM'
+         }]
+       }
+>>>>>>> 619087bedaa7d87333eb7cd9aa36281158a56be5
        await sendDiscordMessage(message, '935129701146566676', process.env.TOKEN);
      }else{
        console.log('\nOperation quitting.\n');

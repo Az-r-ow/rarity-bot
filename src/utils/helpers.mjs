@@ -68,6 +68,10 @@ function promptVerification(question){
 };
 
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 619087bedaa7d87333eb7cd9aa36281158a56be5
 /**
  * sendDiscordMessage -  connect to the client and send a message
  * to the designated channel
@@ -105,6 +109,7 @@ function sendDiscordMessage(message, channelId, _token){
  *
  * @param  {Object} randomNft     A random nft object
  * @param  {Number} collectionSize The number of nfts in the collection
+<<<<<<< HEAD
  * @param  {String} blockchain The name of the blockchain on which resides this collection
  * @param  {String} algo The rarity calculation algorythm used
  * @return {Object}     The collection that has been uploaded to the db
@@ -137,6 +142,27 @@ async function uploadCollectionToDb(randomNft, collectionSize, blockchain, algo)
   }).exec();
 
   return collection;
+=======
+ * @return {Void}
+ */
+function uploadCollectionToDb(randomNft, collectionSize){
+
+  // Find and delete the old instance of the collection
+  Collection.deleteOne({
+    name: randomNft.collection_name.toUpperCase()
+  }, (err) => {
+    if(err)throw err;
+  });
+
+  return Collection.create({
+    name: randomNft.collection_name.toUpperCase(),
+    aliases: [],
+    numPieces: collectionSize,
+    image: randomNft.image
+  }, (err) => {
+    if(err)throw err;
+  });
+>>>>>>> 619087bedaa7d87333eb7cd9aa36281158a56be5
 }
 
 /**
@@ -145,6 +171,7 @@ async function uploadCollectionToDb(randomNft, collectionSize, blockchain, algo)
  * @param  {Array} scoredList It should be an array of sorted nft's by scores
  * @return {type}            description
  */
+<<<<<<< HEAD
 async function uploadRankedNftToDb(scoredList){
 
   if(!scoredList ||typeof scoredList !== "object")reject("Wrong or missing argument !");
@@ -159,14 +186,34 @@ async function uploadRankedNftToDb(scoredList){
     })
   };
 
+=======
+function uploadRankedNftToDb(scoredList){
+  if(!scoredList ||typeof scoredList !== "object")throw "Wrong or missing argument !";
+
+  // Find and delete the old instances of this collection :
+  Nft.deleteMany({
+    collection_name: scoredList[0].collection_name
+  }, (err) => {
+    if (err)throw err;
+  })
+
+  // Who doesn't like loading bars
+>>>>>>> 619087bedaa7d87333eb7cd9aa36281158a56be5
   const bar = new cliProgress.SingleBar({
     format: 'Uploading [{bar}] {percentage}% | ETA: {eta}s | {value}/{total}'
   }, cliProgress.Presets.shades_classic);
   bar.start(scoredList.length, 0);
 
+<<<<<<< HEAD
   let rank = 1;
   for(const nft of scoredList){
     await Nft.create({
+=======
+  let rank = 1
+
+  for(const nft of scoredList){
+    Nft.create({
+>>>>>>> 619087bedaa7d87333eb7cd9aa36281158a56be5
       name: nft.name.toLowerCase(),
       hash: nft.hash,
       image: nft.image,
@@ -176,11 +223,24 @@ async function uploadRankedNftToDb(scoredList){
       rarity: (nft.rarity).toString(),
       attributes: nft.attributes,
       tier: setTier(rank, scoredList.length)
+<<<<<<< HEAD
     });
     bar.increment();
     rank++
   };
   return;
+=======
+    }, (err) => {
+      if(err){
+        throw err;
+      }else{
+        bar.increment();
+      }
+    });
+    rank++;
+  };
+  return
+>>>>>>> 619087bedaa7d87333eb7cd9aa36281158a56be5
 }
 
 
