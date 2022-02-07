@@ -65,6 +65,7 @@ async function getTraitsRecurrences_sol(hs_file_path, path_to_data_folder){
       await attributes.forEach(async traits => {
         let trait_type;
         for(const trait in traits){
+          if(Object.keys(traits).length > 2)continue;
           if(trait === "trait_type"){
             trait_type = traits[trait];
             if(!traits_recurrences.hasOwnProperty(traits[trait])){
@@ -119,7 +120,7 @@ async function calculateScores_sol(traits_file_path, hs_file_path) {
   bar.start(hash_list.length, 0);
 
   for(let i = 0; i < hash_list.length; i++){
-    await sleep(500).then(async () => {
+    await sleep(10).then(async () => {
       let {
         name,
         image,
@@ -152,7 +153,7 @@ async function calculateScores_sol(traits_file_path, hs_file_path) {
 
 
 /**
- * masterAlgo - Our rarity algorithm 
+ * masterAlgo - Our rarity algorithm
  *
  * @param  {String} traits_file_path Path to the trait's file (json)
  * @param  {String} hs_file_path     Path to the hash list (json)
@@ -172,8 +173,8 @@ async function masterAlgo(traits_file_path, hs_file_path){
   let scored_list = [];
   bar.start(hash_list.length, 0);
   for (let i = 0; i < hash_list.length; i++){
-    await sleep(100).then(async () => {
-      let {
+    await sleep(10).then(async () => {
+      const {
         name,
         image,
         attributes,
@@ -196,7 +197,7 @@ async function masterAlgo(traits_file_path, hs_file_path){
 
       // Getting the rarity percentage of the traits that the nft has
       // Leaving the rest as null and having a rarity of
-      await attributes.forEach(attribute => {
+      await attributes.filter(attribute => Object.keys(attribute).length < 3).forEach(attribute => {
         const rarity_percentage = (trait_recurrences[attribute.trait_type][attribute.value]/hash_list.length);
         const indexOfTrait = scored_nft.attributes.findIndex(el => el.trait_type === attribute.trait_type);
         scored_nft.attributes[indexOfTrait].trait_value = attribute.value;

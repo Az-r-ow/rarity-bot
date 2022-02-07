@@ -9,7 +9,7 @@ import {prefix} from './utils/consts.mjs';
 import {createRequire} from 'module';
 const require = createRequire(import.meta.url);
 
-const client = new Client({intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES], presence: {status: 'online', activities: [{name: `${prefix} help`, type: 'WATCHING', url: 'https://punk-tee.com'}]}});
+const client = new Client({intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES], presence: {status: 'online', activities: [{name: `${prefix} rarity`, type: 'WATCHING', url: 'https://punk-tee.com'}]}});
 
 //Setting up collections for caching active interactions
 client.active_interactions = new Collection();

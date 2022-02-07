@@ -22,7 +22,6 @@ import {
   masterAlgo
 } from '../utils/sol.mjs';
 
-
 /**
  * checkCliArgs - Check if the cli args were passed correctly
  *
@@ -31,7 +30,7 @@ import {
  */
 export function checkCliArgs(argv){
 
-  if(argv.length < 4 || !(argv[2] === "-s" || argv[2] === "-e"))throw new Error('Wrong format !\nFormat : node <filename> <flag> <path_to_hash_file> <--custom>');
+  if(argv.length < 4 || !(argv[2] === "-s" || argv[2] === "-e"))throw new Error('Wrong format !\nFormat : node <filename> <flag> <path_to_hash_file>');
 
   // Check if the file is there
   fs.access(argv[3], fs.constants.F_OK, (err) => {
@@ -39,32 +38,29 @@ export function checkCliArgs(argv){
   });
   if(!argv[3].endsWith('.json'))throw new Error("The hash list file should be .json");
 
-  const algo = !argv[4] ? "masterAlgo" : argv[4].toLowerCase() === "--custom" ? "custom" : "masterAlgo";
-
-  return [argv[2], argv[3], algo];
+  return [argv[2], argv[3]];
 }
 
-
-async function calculateScores_eth(){}
 
 async function main(){
 
   try{
-    let args = await checkCliArgs(process.argv);
-    let [flag, hs_file_path, algoType] = args;
+    // node calculateScores.js <flag> the name of the collection
+    const args = await checkCliArgs(process.argv);
+    const [flag, hs_file_path] = args;
     const blockchain = flag === "-s" ? "SOL" : "ETH";
-    // Store the traits and their recurrences
-    const traits_file_path = flag === "-s" ? await getTraitsRecurrences_sol(hs_file_path, '../data/traits')
-                                           : await getTraitsRecurrences_eth();
+    const algoType = "masterAlgo"
 
-    const calculatedScores = algoType === "masterAlgo" ? await masterAlgo(traits_file_path, hs_file_path)
-                                                        : await calculateScores_sol(traits_file_path, hs_file_path);
+    // Find the path to the traits recurrences
+    const traits_file_path = path.resolve(`../data/traits/${path.basename(hs_file_path)}`);
+
+    const calculatedScores = await masterAlgo(traits_file_path, hs_file_path);
+
     // Sort in desc them and then save them in a db and a csv file
     const sortedScores = await calculatedScores.sort((firstEl, secondEl) => firstEl.rarity - secondEl.rarity);
 
     // Converting from object to a csv fomatted string
     const csvString = await toCsvString(sortedScores);
-
     // Writing the csv file
     await fs.writeFileSync(`../data/csv/${path.basename(hs_file_path, '.json')}.csv`, csvString);
 
@@ -89,6 +85,7 @@ async function main(){
 
      // Upload the collection and return it
      const collection = await uploadCollectionToDb(rndNft, sortedScores.length, blockchain, algoType);
+
      const shouldList = await promptVerification('Did you check the generated file and are you sure you want to list it ? (y/n)');
 
      if(shouldList){
@@ -113,10 +110,10 @@ async function main(){
        process.exit(1);
      }
   }catch (e){
+    console.log(e);
     console.log(`\n${e}\n`);
     process.exit(1);
-  };
+  }
 }
 
-// Checks if the file has been run directly
 main();

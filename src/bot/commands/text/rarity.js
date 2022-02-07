@@ -28,6 +28,10 @@ export const command = {
       const regex =  new RegExp(`${args.slice(1).filter(arg => isNaN(arg)).join(" ")}`);
       console.log(args.slice(1).filter(arg => isNaN(arg)).join(" "))
       const similar = await Collection.find({name: {$regex: regex, $options: 'i'}}).exec();
+      if(!similar)throw {
+        name: "Nothing was found !",
+        message: "This collection might not be listed."
+      }; 
       throw {
         name: "Nothing was found !",
         message: `You might be searching for : \`\`\`${similar.map(i => i.name).join('\n')}\`\`\``
