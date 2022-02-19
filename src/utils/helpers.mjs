@@ -1,4 +1,5 @@
 import readline from 'readline';
+import { access, constants, readFileSync } from 'fs';
 import { Nft, Collection }from './mongoose.mjs';
 import cliProgress from 'cli-progress';
 import {
@@ -181,6 +182,39 @@ async function uploadRankedNftToDb(scoredList){
     rank++
   };
   return;
+};
+
+
+/**
+ * exists - checks if a file exists in the given path
+ *
+ * @param  {String} path The path file
+ * @return {Bool}      true if it exists and false if it doesnt
+ */
+function fileExists(path){
+  return new Promise(resolve => {
+    let res;
+    access(path, constants.F_OK, err => {
+      res = err ? false : true;
+      resolve(res);
+    });
+  })
+};
+
+
+/**
+ * readJsonFile - Reads a json file and returns a prased object
+ *
+ * @param  {String} path The path to the json file
+ * @return {Object}      The content of the json file
+ */
+async function readJsonFile(path){
+  try{
+    const raw_file = await readFileSync(path);
+    return raw_file ? await JSON.parse(raw_file) : undefined;
+  }catch (e){
+    return undefined
+  }
 }
 
 
@@ -190,5 +224,7 @@ export {
   promptVerification,
   sendDiscordMessage,
   uploadRankedNftToDb,
-  uploadCollectionToDb
+  uploadCollectionToDb,
+  fileExists,
+  readJsonFile
 };

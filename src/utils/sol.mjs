@@ -2,9 +2,9 @@ import { Connection } from '@metaplex/js';
 import { Metadata } from "@metaplex-foundation/mpl-token-metadata";
 import { PublicKey } from '@solana/web3.js';
 import fs from 'fs';
-import axios from 'axios';
+import fetch from 'node-fetch';
 import path from 'path';
-import {sleep} from './helpers.mjs';
+import { sleep, fileExists, readJsonFile } from './helpers.mjs';
 import cliProgress from 'cli-progress';
 
 
@@ -17,14 +17,64 @@ import cliProgress from 'cli-progress';
  */
 async function getMetadataData_sol(nft_address){
   const NFT_MINT_ADDRESS = new PublicKey(nft_address);
+
+  const pda = await Metadata.getPDA(NFT_MINT_ADDRESS);
+  const metadata = await Metadata.load(new Connection('mainnet-beta'), pda);
+  const response = await fetch(metadata.data.data.uri);
+  const res_metadata = await response.json();
+
+  return res_metadata;
+};
+
+
+/**
+ * getMetadata_sol - Get the metadata of a given token
+ *
+ * @param  {String} nft_address The token address of the nft
+ * @return {Object}             The metadata of this token
+ */
+async function getMetadata_sol(nft_address){
+  const NFT_MINT_ADDRESS = new PublicKey(nft_address);
   let req_metadata;
 
   const pda = await Metadata.getPDA(NFT_MINT_ADDRESS);
   const metadata = await Metadata.load(new Connection('mainnet-beta'), pda);
-  req_metadata = await axios.get(metadata.data.data.uri);
 
-  return req_metadata.data;
-};
+  return metadata;
+}
+
+
+/**
+ * inCollection - Since we're fetching hash lists from the verified creator token we will be getting
+ * nft's from different collections created by the this verified creator account. Therefore we want to filter them out.
+ *
+ * @param  {String} hs_file_path The path of the hash list file (including the name of the file)
+ * @param  {String} nftSymbol   The symbol of the nft collection (fetched from the metadata)
+ * @return {Bool}        Will return true if it's in the desired collection and false otherwise
+ */
+function inCollection(hs_file_path, nftSymbol){
+
+  const collectionSymbol = path.basename(hs_file_path, '.json');
+
+  return collectionSymbol === nftSymbol ? true : false;
+}
+
+
+/**
+ * removeIntruders - Will remove the intruders in the hash list
+ *
+ * @param  {Array} intruders The nft's that does not belong to the collection
+ * @param  {Array} hash_list The list of nfts
+ * @return {Array}           The hash list filtered from intruders
+ */
+function removeIntruders(intruders, hash_list){
+  intruders.forEach(intruder => {
+    let intruderIndex = hash_list.indexOf(intruder);
+    hash_list.splice(intruderIndex, 1);
+  });
+
+  return hash_list;
+}
 
 
 /**
@@ -39,8 +89,21 @@ async function getTraitsRecurrences_sol(hs_file_path, path_to_data_folder){
    * The object that will later on be tranformed
    * into a .json file and stored.
    */
-  const traits_recurrences = {};
+  let traits_recurrences = {};
 
+  // A list of all the tokens that don't belong in the collection we're listing
+  let intruders = [];
+
+
+  let last_index = undefined;
+
+  const isSnapshot = await fileExists(`./${path.basename(hs_file_path)}`);
+
+  if(isSnapshot){
+    let snapshot = await readJsonFile(`./${path.basename(hs_file_path)}`);
+    [traits_recurrences, intruders] = [snapshot.traits_recurrences, snapshot.intruders]
+    last_index = snapshot.last_index;
+  }
 
   /**
    * For the sake of entertainment while waiting
@@ -51,16 +114,34 @@ async function getTraitsRecurrences_sol(hs_file_path, path_to_data_folder){
     format: 'Traits Recurrences [{bar}] {percentage}% | ETA: {eta}s | {value}/{total}'
   }, cliProgress.Presets.shades_classic);
 
-  let rawHashList = await fs.readFileSync(hs_file_path);
-  let hash_list = JSON.parse(rawHashList);
+  // Reading the hash list file and parsing it into a js array
+  let hash_list = await readJsonFile(hs_file_path);
+
+  let i = last_index ? last_index : 0;
 
   // Starting the progress bar
-  bar.start(hash_list.length, 0);
+  bar.start(hash_list.length, i);
 
-  for(let i = 0; i < hash_list.length; i++){
-    await sleep(100).then(async () =>{
-      // Retreiving the attributes for each nft
-      const {attributes} = await getMetadataData_sol(hash_list[i]);
+
+  for(i; i < hash_list.length; i++){
+    try {
+      await sleep(1);
+      // Retreiving the metadata for each nft
+      const metadata = await getMetadata_sol(hash_list[i]);
+
+      // If the nft is not in the collection that we're listing
+      // We will store it's index in an array and then remove it from the hash list file
+      // And then we'll skip it
+      if(!inCollection(hs_file_path, metadata.data.data.symbol)){
+        intruders.push(hash_list[i]);
+        // Everything else in the for loop will not be executed
+        return;
+      }
+
+      const request = await fetch(metadata.data.data.uri);
+      const data = await request.json();
+
+      const { attributes } = data;
 
       await attributes.forEach(async traits => {
         let trait_type;
@@ -80,18 +161,53 @@ async function getTraitsRecurrences_sol(hs_file_path, path_to_data_folder){
             traits_recurrences[trait_type][traits[trait]] += 1;
           }
         }
-      })
-    });
-    bar.increment();
+      });
+    } catch (e) {
+      // If an error was caught during the process
+      // Create a back up file to continue from where it left off
+      console.log(e);
+      const snapshot = {
+        pid: 1,
+        traits_recurrences,
+        intruders,
+        last_index: i
+      };
+
+      const snapshot_file_content = await JSON.stringify(snapshot);
+      await fs.writeFileSync(`./${path.basename(hs_file_path)}`, snapshot_file_content);
+      console.log(`\nA snapshot file was created.\n`);
+      process.exit(1);
+    } finally {
+      bar.increment();
+    }
   };
 
   let pathToTraits;
 
   try{
     pathToTraits = path.resolve(path_to_data_folder);
+    // Transforming the output into json
     const output = await JSON.stringify(traits_recurrences);
+    // Writing the json trait file
     await fs.writeFileSync(`${pathToTraits}/${path.basename(hs_file_path)}`, output);
     console.log(`\n${path.basename(hs_file_path)} created !`);
+
+    // If intruders were found they will be removed from the hash list and the hash list file will be updated.
+    if(intruders.length){
+      await removeIntruders(intruders, hash_list);
+      await fs.writeFileSync(hs_file_path, JSON.stringify(hash_list));
+      console.log(`Hash list file has been edited !`);
+      console.log(`Found ${intruders.length} intruders.`);
+      console.log(`New hash list size : ${hash_list.length}`);
+    };
+
+    // If there is a snapshot file delete that file
+    if(isSnapshot){
+      await fs.unlink(`./${path.basename(hs_file_path)}`, err => {
+        if (err) throw err
+        console.log('\nThe snapshot file has been deleted.')
+      });
+    }
   }catch (e){
     console.log(e);
     process.exit(1);
@@ -100,8 +216,10 @@ async function getTraitsRecurrences_sol(hs_file_path, path_to_data_folder){
 };
 
 async function calculateScores_sol(traits_file_path, hs_file_path) {
-  let trait_recurrences = JSON.parse(await fs.readFileSync(traits_file_path));
-  const hash_list = JSON.parse(await fs.readFileSync(hs_file_path));
+
+  let trait_recurrences = await readJsonFile(traits_file_path);
+  const hash_list = await readJsonFile(hs_file_path);
+
   // Another loading bar because why not
   const bar = new cliProgress.SingleBar({
     format: 'Calculating Scores [{bar}] {percentage}% | ETA: {eta}s | {value}/{total}'
@@ -121,6 +239,7 @@ async function calculateScores_sol(traits_file_path, hs_file_path) {
 
   for(let i = 0; i < hash_list.length; i++){
     await sleep(10).then(async () => {
+
       let {
         name,
         image,
@@ -160,26 +279,37 @@ async function calculateScores_sol(traits_file_path, hs_file_path) {
  * @return {Array}                  An array of scored NFT objects
  */
 async function masterAlgo(traits_file_path, hs_file_path){
-  let trait_recurrences = JSON.parse(await fs.readFileSync(traits_file_path));
-  const hash_list = JSON.parse(await fs.readFileSync(hs_file_path));
-
-  const bar = new cliProgress.SingleBar({
-    format: 'Calculating Scores [{bar}] {percentage}% | ETA: {eta}s | {value}/{total}'
-  }, cliProgress.Presets.shades_classic);
+  let trait_recurrences = await readJsonFile(traits_file_path);
+  const hash_list = await readJsonFile(hs_file_path);
 
   // There are two attributes in here that shouldn't be confused
   // The first attribtes that is being destructures is the attributes of the nft itself
   // The second attributes (in scored_nft) is the totality of the attributes types in the collection
   let scored_list = [];
-  bar.start(hash_list.length, 0);
-  for (let i = 0; i < hash_list.length; i++){
-    await sleep(10).then(async () => {
+
+
+  const snapshot_file = await readJsonFile(`./${path.basename(hs_file_path)}`);
+  if(snapshot_file && snapshot_file.pid == 2){
+    scored_list = snapshot_file.scored_list;
+  }
+
+  let i = scored_list.length;
+
+  const bar = new cliProgress.SingleBar({
+    format: 'Calculating Scores [{bar}] {percentage}% | ETA: {eta}s | {value}/{total}'
+  }, cliProgress.Presets.shades_classic);
+
+  bar.start(hash_list.length, i);
+  for (i; i < hash_list.length; i++){
+    await sleep(10);
+    try {
       const {
         name,
         image,
         attributes,
         collection
       } = await getMetadataData_sol(hash_list[i]);
+
 
       const scored_nft = {
         name,
@@ -207,8 +337,19 @@ async function masterAlgo(traits_file_path, hs_file_path){
       scored_nft.rarity = scored_nft.attributes.map(a => a.rarity).reduce((a, b) => a * b);
 
       await scored_list.push(scored_nft);
-    });
-    bar.increment();
+    } catch (e) {
+      // If any error occurs create a snapshot of the current progress
+      const snapshot = {
+        pid: 2,
+        scored_list
+      }
+      const snapshot_file_content = await JSON.stringify(snapshot);
+      await fs.writeFileSync(`./${path.basename(hs_file_path)}`, snapshot_file_content);
+      console.log('Snapshot file created !')
+      process.exit(1);
+    } finally {
+      bar.increment();
+    }
   }
   return scored_list;
 }
@@ -217,5 +358,6 @@ export {
   getMetadataData_sol,
   calculateScores_sol,
   getTraitsRecurrences_sol,
-  masterAlgo
+  masterAlgo,
+  getMetadata_sol
 }

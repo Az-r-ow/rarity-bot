@@ -2,12 +2,12 @@ import { Connection } from '@metaplex/js';
 import { Metadata } from "@metaplex-foundation/mpl-token-metadata";
 import { PublicKey } from '@solana/web3.js';
 import path from 'path';
-import axios from 'axios';
 import fs from 'fs';
 import toCsvString from '../utils/toCsvString.mjs';
 import cliProgress from 'cli-progress';
 import 'dotenv/config';
-import {command} from '../bot/commands/text/rarity.js';
+import { command as command1 } from '../bot/commands/text/rarity.js';
+import {command as command2 } from '../bot/commands/text/rank.js'
 import {
   sleep,
   promptVerification,
@@ -53,6 +53,7 @@ async function main(){
     let args = await checkCliArgs(process.argv);
     let [flag, hs_file_path, algoType] = args;
     const blockchain = flag === "-s" ? "SOL" : "ETH";
+
     // Store the traits and their recurrences
     const traits_file_path = flag === "-s" ? await getTraitsRecurrences_sol(hs_file_path, '../data/traits')
                                            : await getTraitsRecurrences_eth();
@@ -97,7 +98,7 @@ async function main(){
        const message = {
          embeds: [{
            title: `New collection added : ${collection.name}`,
-           description: `Welcome to \*\*${collection.name}\*\*, you can now check their rankings with :\n\`${command.usage}\`\n\n⚠️ Please remember that rarity is calculated from metatada, wrong metadata may lead to a wrong ranking. We will be working our hardest to monitor such mistakes and fix them ASAP.`,
+           description: `Welcome to \*\*${collection.name}\*\*, you can now check their rankings with :\n\`${[command1.usage, command2.usage].join("\n\n")}\`\n\n⚠️ Please remember that rarity is calculated from metatada, wrong metadata may lead to a wrong ranking. We will be working our hardest to monitor such mistakes and fix them ASAP.`,
            footer: {
              text: `${collection.blockchain} • ${collection.algo}`
            },
@@ -113,7 +114,8 @@ async function main(){
        process.exit(1);
      }
   }catch (e){
-    console.log(`\n${e}\n`);
+    console.log(`${e}`);
+  }finally{
     process.exit(1);
   };
 }

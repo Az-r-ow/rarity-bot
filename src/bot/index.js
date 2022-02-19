@@ -81,7 +81,7 @@ client.on('interactionCreate', async interaction => {
   const command = client.commands.get(interaction.commandName);
 
   // This variable is only valid in case I have one option proposed
-  const args = interaction.options._hoistedOptions.length ? interaction.options._hoistedOptions[0].value.replace(/\s+/g, " ").split(" ") : [];
+  const args = interaction.options._hoistedOptions.length ? interaction.options._hoistedOptions.map(options => options.value).join(" ").replace(/\s+/g, " ").split(" ") : [];
 
   // If the command is not found exit
   if(!command)return;

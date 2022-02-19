@@ -9,7 +9,7 @@ const commands = [];
 const commandFiles = fs.readdirSync('./commands/slash').filter(file => file.endsWith('.js'));
 
 
-const guildId = '552869662862606343';
+const guildId = '934957589215727686';
 
 
 const rest = new REST({version: '9'}).setToken(process.env.TOKEN);

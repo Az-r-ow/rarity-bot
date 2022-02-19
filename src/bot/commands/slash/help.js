@@ -1,7 +1,8 @@
+import {command} from '../text/help.js';
 export const help = {
   data: {
-    name: "help",
-    description: "Get help !",
+    name: command.name,
+    description: command.description,
     options: [
       {
         type: 3,
