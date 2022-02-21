@@ -94,7 +94,6 @@ async function getTraitsRecurrences_sol(hs_file_path, path_to_data_folder){
   // A list of all the tokens that don't belong in the collection we're listing
   let intruders = [];
 
-
   let last_index = undefined;
 
   const isSnapshot = await fileExists(`./${path.basename(hs_file_path)}`);
@@ -135,13 +134,19 @@ async function getTraitsRecurrences_sol(hs_file_path, path_to_data_folder){
       if(!inCollection(hs_file_path, metadata.data.data.symbol)){
         intruders.push(hash_list[i]);
         // Everything else in the for loop will not be executed
-        return;
+        continue;
       }
 
       const request = await fetch(metadata.data.data.uri);
       const data = await request.json();
 
       const { attributes } = data;
+
+      if(!attributes){
+        intruders.push(hash_list[i]);
+        continue;
+      }
+
 
       await attributes.forEach(async traits => {
         let trait_type;
@@ -338,6 +343,7 @@ async function masterAlgo(traits_file_path, hs_file_path){
 
       await scored_list.push(scored_nft);
     } catch (e) {
+      console.log(e)
       // If any error occurs create a snapshot of the current progress
       const snapshot = {
         pid: 2,
@@ -350,7 +356,15 @@ async function masterAlgo(traits_file_path, hs_file_path){
     } finally {
       bar.increment();
     }
-  }
+  };
+
+  if(await readJsonFile(`./${path.basename(hs_file_path)}`)){
+    await fs.unlink(`./${path.basename(hs_file_path)}`, err => {
+      if (err) throw err
+      console.log('\nThe snapshot file has been deleted.')
+    });
+  };
+
   return scored_list;
 }
 

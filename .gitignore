@@ -8,3 +8,4 @@ phantom_wallet.txt
 node_modules
 test.js
 /test/test_cases/output/*
+/src/list/*.json
