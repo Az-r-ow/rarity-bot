@@ -14,9 +14,11 @@ This might sound confusing so this is an example :
  This hat goes in the trait type : `head_accessories`. There's around `165` Punk Tees in this collection.
  And `20` of them have this hat.
  So probability would be :
- $$ 20 / 165 = 0,12 $$
+ 
+ $$0 / 165 = 0,12$$
 
  The formula I used to calculate the `trait`'s score of an attribute (Ex: the cap) is :
+ 
  $$ TraitScore_{\left( a \right)} = 100 \times (1 - (\frac{NumRecurrences_{(a)}}{TotalNum})) $$
 
  And then the final score is just the sum of all the  `TraitScore` together  giving a final formula of :
