@@ -15,7 +15,7 @@ This might sound confusing so this is an example :
  And `20` of them have this hat.
  So probability would be :
  
- $$0 / 165 = 0,12$$
+ $$20 / 165 = 0,12$$
 
  The formula I used to calculate the `trait`'s score of an attribute (Ex: the cap) is :
  
