@@ -315,12 +315,11 @@ async function masterAlgo(traits_file_path, hs_file_path){
         collection
       } = await getMetadataData_sol(hash_list[i]);
 
-
       const scored_nft = {
         name,
         hash: hash_list[i],
         image,
-        collection_name: collection.name,
+        collection_name: "SolKongz",
         rarity: 0,
         attributes: Object.keys(trait_recurrences).map(key => {
           // Going over the traits
